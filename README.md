@@ -1,17 +1,17 @@
-# Professional Analytics Dashboard — INI/CPI Analytics
+# Central Bank of Uzbekistan (CBU) — Price Index Analytics
 
-A comprehensive, state-of-the-art analytics platform for monitoring and analyzing **Consumer Price Index (CPI)** data. This tool allows economists, analysts, and public users to visualize inflationary trends in Uzbekistan with high precision, interactive charts, and localized reports.
+A comprehensive, state-of-the-art analytics platform developed for the **Central Bank of Uzbekistan (CBU)** to monitor and analyze **Consumer Price Index (CPI)** data. This tool allows economists, analysts, and banks to visualize inflationary trends with high precision, interactive charts, and localized reports.
 
-## 🌟 Overview
+## Overview
 
-The **Professional Analytics Dashboard** solves the challenge of processing and visualizing complex CPI data. By autonomously downloading official SDMX/Excel data, the system computes critical economic indicators (MoM, YoY, Cumulative) and presents them through a premium, responsive interface.
+The **CBU Analytics Dashboard** solves the challenge of processing and visualizing complex CPI data. By autonomously downloading official SDMX/Excel data provided by the Statistics Agency, the system computes critical economic indicators (MoM, YoY, Cumulative) and presents them through a premium, responsive interface tailored for central banking needs.
 
-- **Objective:** Democratize access to price index analytics.
+- **Objective:** Democratize access to price index analytics for the Central Bank.
 - **Problem Solved:** Manually parsing government Excel files and calculating cumulative inflation is time-consuming and error-prone.
-- **Audience:** Economists, policy makers, data analysts, and the general public.
+- **Audience:** CBU Economists, policy makers, data analysts, and institutional stakeholders.
 - **Data Source:** Official Uzbekistan CPI data (sdmx.stat.uz).
 
-## ✨ Features
+## Features
 
 - **Indicator Analytics:** Detailed tracking of MoM (Month-over-Month), YoY (Year-over-Year), and Cumulative inflation.
 - **Dynamic Filters:** Filter by complex classifier hierarchies, narrow down date ranges, and switch between metric types instantly.
@@ -22,7 +22,7 @@ The **Professional Analytics Dashboard** solves the challenge of processing and 
 - **Dual Export:** Export filtered reports directly to **CSV** or **Excel (XLSX)** format.
 - **Design:** Premium dark theme with glassmorphism effects and smooth micro-animations.
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework:** React 18 + Vite (TypeScript)
@@ -39,7 +39,7 @@ The **Professional Analytics Dashboard** solves the challenge of processing and 
 - **Excel Processing:** ExcelJS / XLSX libraries
 - **Ingestion:** Custom background job processor with progress tracking
 
-## 📐 Architecture & Logic
+## Architecture & Logic
 
 ### Data Flow
 1. **Source:** The backend fetches `SDMX_DATA_*.xlsx` from the official API.
@@ -57,7 +57,7 @@ When an admin clicks "Yangilash":
 - A global `RefreshOverlay` shows progress (0% → 100%) and ETA.
 - Upon completion, `triggerRefresh()` increments a global counter, causing all visible components to refetch data without a browser reload.
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 ├── backend/                # NestJS Server
@@ -78,7 +78,7 @@ When an admin clicks "Yangilash":
 └── .env.example            # Root env template
 ```
 
-## 🚀 Setup & Run Locally
+## Setup & Run Locally
 
 ### 1. Prerequisites
 - Node.js (v18 or later)
@@ -131,18 +131,18 @@ npm run dev
 ### 6. Initial Data
 Once both are running, open the dashboard and click the **"Yangilash"** (Refresh) button in the sidebar to fetch the latest data from the official source.
 
-## 📜 Available Scripts
+## Available Scripts
 
 - `npm run dev`: Start frontend development server.
 - `npm run build`: Build production-ready frontend.
 - `cd backend && npm run dev`: Start backend in watch mode.
 - `cd backend && npx prisma studio`: Open database GUI.
 
-## 📸 Screenshots
+## Screenshots
 *(Add your screenshots here after deployment)*
 - [Dashboard View]
 - [Progressive Refresh Overlay]
 - [Methodology Explained]
 
 ---
-© 2026 INI Analytics Dashboard. Built with passion for data transparency.
+© 2026 CBU Analytics Dashboard. Built for the Central Bank of Uzbekistan.

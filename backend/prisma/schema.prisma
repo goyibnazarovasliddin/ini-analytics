@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Classifier {
+  code        String   @id
+  name_uz     String?
+  name_ru     String?
+  name_en     String?
+  name_uzc    String?
+  parent_code String?
+  level       Int?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  indices     MonthlyIndex[]
+  
+  // Self-relation
+  parent      Classifier?  @relation("ClassifierHierarchy", fields: [parent_code], references: [code])
+  children    Classifier[] @relation("ClassifierHierarchy")
+
+  @@map("classifiers")
+}
+
+model MonthlyIndex {
+  id              Int        @id @default(autoincrement())
+  classifier_code String
+  period          DateTime   // Storing as YYYY-MM-01
+  index_value     Float      // The raw "Oylik indeks" e.g. 100.64
+  created_at      DateTime   @default(now())
+
+  classifier      Classifier @relation(fields: [classifier_code], references: [code], onDelete: Cascade)
+
+  @@unique([classifier_code, period])
+  @@index([classifier_code, period])
+  @@map("monthly_indices")
+}
+
+model IngestionRun {
+  id            Int      @id @default(autoincrement())
+  source_url    String
+  fetched_at    DateTime @default(now())
+  status        String   // "SUCCESS" | "ERROR"
+  rows_loaded   Int      @default(0)
+  error_message String?
+
+  @@map("ingestion_runs")
+}
+
+model RefreshJob {
+  id              String   @id @default(uuid())
+  status          String   // "PENDING" | "RUNNING" | "SUCCESS" | "ERROR"
+  progress        Int      @default(0) // 0-100
+  total_rows      Int      @default(0)
+  processed_rows  Int      @default(0)
+  eta_seconds     Int?     // Estimated seconds remaining
+  error_message   String?
+  started_at      DateTime @default(now())
+  completed_at    DateTime?
+  
+  @@map("refresh_jobs")
+}
