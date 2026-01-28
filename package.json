@@ -1,5 +1,5 @@
 {
-      "name": "Professional Analytics Dashboard",
+      "name": "professional-analytics-dashboard",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
@@ -44,6 +44,7 @@
             "react-resizable-panels": "^2.1.7",
             "react-router": "*",
             "recharts": "^2.15.2",
+            "serve": "^14.2.5",
             "sonner": "^2.0.3",
             "tailwind-merge": "*",
             "tailwindcss": "^4.1.18",
@@ -59,6 +60,7 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build"
+            "build": "vite build",
+            "start": "serve -s build -p $PORT"
       }
 }
