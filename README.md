@@ -139,10 +139,12 @@ Once both are running, open the dashboard and click the **"Yangilash"** (Refresh
 - `cd backend && npx prisma studio`: Open database GUI.
 
 ## Screenshots
-*(Add your screenshots here after deployment)*
-- [Dashboard View]
-- [Progressive Refresh Overlay]
-- [Methodology Explained]
+- Dashboard View
+![Dashboard View](image.png)
+- Table View
+![Table View](image-1.png)
+- Methodology Explained
+![Methodology Explained](image-2.png)
 
 ---
 © 2026 CBU Analytics Dashboard. Built for the Central Bank of Uzbekistan.
