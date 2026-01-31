@@ -62,7 +62,7 @@ export function RefreshOverlay() {
                         )}
                     </div>
                     <p className="text-2xl font-bold text-foreground mt-2">
-                        {isDataFetching ? "Ma'lumotlar yangilanmoqda" : t('sidebar.refreshing')}
+                        {isDataFetching ? t('refresh.fetchingHeadline') : t('sidebar.refreshing')}
                     </p>
                 </div>
 
@@ -83,7 +83,7 @@ export function RefreshOverlay() {
                         )}
                         {isDataFetching && (
                             <span className="text-emerald-500 font-bold animate-pulse">
-                                Yakunlanmoqda...
+                                {t('refresh.finishing')}
                             </span>
                         )}
                     </div>
@@ -92,11 +92,11 @@ export function RefreshOverlay() {
                 <div className="text-sm text-muted-foreground text-center max-w-sm space-y-1">
                     <p className="font-medium">
                         {isDataFetching
-                            ? "Bazadagi o'zgarishlar interfeysga qo'llanilmoqda."
-                            : "Iltimos, kuting. Ma'lumotlar bazasi yangilanmoqda..."}
+                            ? t('refresh.fetchingSub')
+                            : t('refresh.refreshingSub')}
                     </p>
                     <p className="text-xs opacity-70">
-                        Bu jarayon davomida sahifani yopmang yoki yangilamang.
+                        {t('refresh.warning')}
                     </p>
                 </div>
             </div>

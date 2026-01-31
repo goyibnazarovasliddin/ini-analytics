@@ -41,6 +41,28 @@ The **CBU Analytics Dashboard** solves the challenge of processing and visualizi
 
 ## Architecture & Logic
 
+### Key Features
+- **Automated Data Ingestion**: Fetches monthly Excel reports from the official Statistics Agency source.
+- **Historical Data Import**: Secure admin interface to upload past historical data from Excel files.
+- **Dynamic Analytics**: Calculates MoM, YoY, and Cumulative indices on-the-fly.
+- **Multi-language Support**: Uz, Ru, and En interfaces.
+- **Responsive Design**: Optimized for desktop and mobile viewing.
+- **Table & Export**: View detailed data tables and export results to Excel.
+
+### Analytics Logic
+- **MoM (Month-over-Month)**: `(Current Index / Previous Index - 1) * 100`
+- **YoY (Year-over-Year)**: Calculated as a **Rolling 12-month cumulative product**.
+  - Formula: `(Product of last 12 monthly indices - 1) * 100`
+  - This method ensures accurate annual inflation figures based on the compounded monthly changes.
+- **Cumulative**: `(Product of all monthly indices in range - 1) * 100`
+
+### Administrative Features
+- **Data Refresh**: Trigger a fresh download of the latest data from the official source.
+- **Upload History**: Upload Excel files containing historical data (e.g., pre-2024).
+  - Requires Admin Password (`c0d3c0r3-cbu-admin`).
+  - Rate limited to prevent abuse.
+  - Smart merging: Only imports new data points not present in the database.
+
 ### Data Flow
 1. **Source:** The backend fetches `SDMX_DATA_*.xlsx` from the official API.
 2. **Ingestion:** The file is parsed into a relational structure (`Classifier` and `MonthlyIndex`).

@@ -124,48 +124,35 @@ export class AnalyticsService {
                 });
 
             } else if (metric === 'yoy') {
-                // Fetch data starting 12 months before 'start' to enable YoY calculation for the requested range
+                // Fetch data starting 12 months before 'start' to ensure we have enough history for the first point
                 const lookbackStart = PeriodUtils.addMonths(start, -12);
+
                 const data = await this.prisma.monthlyIndex.findMany({
                     where: { classifier_code: code, period: { gte: lookbackStart, lte: end } },
                     orderBy: { period: 'asc' }
                 });
 
-                if (data.length === 0) {
-                    values = periods.map(() => null);
-                } else {
-                    const priceLevels = new Map<number, number>();
+                values = periods.map(p => {
+                    // Calculate "Cumulative" for the last 12 months [p-11, p]
+                    // This creates a rolling 12-month window
+                    const windowEnd = new Date(p);
+                    const windowStart = PeriodUtils.addMonths(windowEnd, -11);
 
-                    // Build Price Level Chain from t0 (earliest fetched date)
-                    // price_level(t0) = index(t0) / 100
-                    // price_level(t) = price_level(prev) * (index(t) / 100)
+                    // Filter data points that fall within this 12-month window
+                    // We check: windowStart <= d.period <= windowEnd
+                    const windowData = data.filter(d =>
+                        d.period.getTime() >= windowStart.getTime() &&
+                        d.period.getTime() <= windowEnd.getTime()
+                    );
 
-                    let currentLevel = 0; // Will initialize on first item
-
-                    for (let i = 0; i < data.length; i++) {
-                        const item = data[i];
-                        if (i === 0) {
-                            currentLevel = item.index_value / 100;
-                        } else {
-                            currentLevel = currentLevel * (item.index_value / 100);
-                        }
-                        priceLevels.set(item.period.getTime(), currentLevel);
+                    if (windowData.length > 0) {
+                        // Apply the Cumulative Formula: (Product(index/100) - 1) * 100
+                        const product = windowData.reduce((acc, curr) => acc * (curr.index_value / 100), 1);
+                        return Number(((product * 100) - 100).toFixed(2));
                     }
 
-                    values = periods.map(p => {
-                        const currentP = priceLevels.get(p.getTime());
-                        const prevYearDate = PeriodUtils.addMonths(p, -12);
-                        const prevP = priceLevels.get(prevYearDate.getTime());
-
-                        // If both t and t-12 price levels exist, compute YoY
-                        // yoy_percent(t) = ( (price_level(t) / price_level(t-12)) * 100 ) - 100
-                        if (currentP && prevP) {
-                            const yoy = ((currentP / prevP) * 100) - 100;
-                            return Number(yoy.toFixed(2));
-                        }
-                        return null;
-                    });
-                }
+                    return null;
+                });
             }
 
             series.push({ code, label, values });

@@ -194,6 +194,35 @@ class APIClient {
     });
   }
 
+  // Admin - Upload History
+  async uploadHistory(file: File, adminKey: string, uploadPassword: string): Promise<{ jobId: string; status: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // We can't use standard request() because it handles Content-Type: application/json
+    // We need standard fetch for FormData
+    const url = `${this.baseURL}/admin/upload-history`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-ADMIN-KEY': adminKey,
+        'X-UPLOAD-PASSWORD': uploadPassword,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let msg = response.statusText;
+      try {
+        const err = await response.json();
+        msg = err.message || msg;
+      } catch { }
+      throw new Error(`Upload Error: ${response.status} ${msg}`);
+    }
+
+    return response.json();
+  }
+
   // Admin - Get Refresh Job Status
   async getRefreshJobStatus(jobId: string): Promise<{
     id: string;

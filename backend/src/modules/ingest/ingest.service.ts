@@ -275,6 +275,176 @@ export class IngestService {
         };
     }
 
+    async processHistoryFile(fileBuffer: Buffer, jobId: string) {
+        this.logger.log(`Starting history ingestion (Job: ${jobId})`);
+
+        // Start async processing
+        this.processHistoryFileAsync(fileBuffer, jobId).catch(err => {
+            this.logger.error(`History ingestion failed: ${err.message}`);
+        });
+
+        return { jobId };
+    }
+
+    private async processHistoryFileAsync(fileBuffer: Buffer, jobId: string) {
+        const startTime = new Date();
+        try {
+            await this.prisma.refreshJob.update({
+                where: { id: jobId },
+                data: { status: 'RUNNING' }
+            });
+
+            const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const jsonData: any[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
+
+            if (jsonData.length === 0) throw new Error('Excel file is empty');
+
+            // 1. Get Existing Periods (Source of Truth)
+            const existingPeriods = await this.prisma.monthlyIndex.findMany({
+                select: { period: true },
+                distinct: ['period']
+            });
+            const existingDates = new Set(existingPeriods.map(r => r.period.toISOString().slice(0, 7))); // YYYY-MM
+
+            // 2. Identify Target Columns (only those NOT in DB)
+            const firstRow = jsonData[0];
+            const allMonthKeys = Object.keys(firstRow).filter(key => /^\\d{4}-[MМ]\\d{2}$/.test(key));
+
+            const targetKeys = allMonthKeys.filter(key => {
+                const normalized = key.replace('М', 'M'); // Handle Cyrillic M
+                const date = PeriodUtils.parsePeriodToDate(normalized);
+                const isoMonth = date.toISOString().slice(0, 7);
+                return !existingDates.has(isoMonth);
+            });
+
+            if (targetKeys.length === 0) {
+                await this.prisma.refreshJob.update({
+                    where: { id: jobId },
+                    data: {
+                        status: 'SUCCESS',
+                        progress: 100,
+                        error_message: 'No new historical periods found. All dates in file already exist in DB.',
+                        completed_at: new Date()
+                    }
+                });
+                return;
+            }
+
+            this.logger.log(`Found ${targetKeys.length} new historical periods: ${targetKeys.join(', ')}`);
+
+            // 3. Process Rows
+            let processedCount = 0;
+            const validRows = jsonData.filter(r => r['Code'] || r['code']);
+            // Note: Case sensitivity check might be needed like in refreshData, but keeping simple for now or copying helper
+
+            // Helper to safe get value
+            const getVal = (row: any, key: string) => {
+                const k = Object.keys(row).find(dk => dk.toLowerCase() === key.toLowerCase());
+                return k ? row[k] : null;
+            };
+
+            const totalRows = validRows.length;
+            await this.prisma.refreshJob.update({
+                where: { id: jobId },
+                data: { total_rows: totalRows }
+            });
+
+            const minDate = targetKeys[0];
+            const maxDate = targetKeys[targetKeys.length - 1];
+
+            for (const row of validRows) {
+                const code = String(getVal(row, 'Code') || '').trim();
+                if (!code) continue;
+
+                // Ensure classifier exists (if strictly history file, classifiers might be missing? 
+                // We should probably upsert classifier too just in case)
+                // Reuse parent derivation logic
+                let parentCode = this.deriveParentCode(code);
+                // We won't strictly enforce parent existence check here to avoid complex "allCodes" set logic unless necessary,
+                // but standard upsert is safer. 
+                // Simplified: Just Upsert Classifier Name if provided
+
+                await this.prisma.classifier.upsert({
+                    where: { code },
+                    update: {}, // Don't overwrite names from history if they exist? Or should we? Default to no update for safety.
+                    create: {
+                        code,
+                        name_uz: getVal(row, 'Klassifikator') || null,
+                        name_ru: getVal(row, 'Klassifikator_ru') || null,
+                        name_en: getVal(row, 'Klassifikator_en') || null,
+                        parent_code: parentCode
+                    }
+                });
+
+                // Insert Indices for Target Keys
+                for (const mKey of targetKeys) {
+                    const rawVal = row[mKey];
+                    if (rawVal === null || rawVal === undefined || rawVal === '') continue;
+
+                    let valNum: number;
+                    if (typeof rawVal === 'number') valNum = rawVal;
+                    else valNum = parseFloat(String(rawVal).replace(/,/g, '.'));
+
+                    if (isNaN(valNum)) continue;
+
+                    const normalizedKey = mKey.replace('М', 'M');
+                    const periodDate = PeriodUtils.parsePeriodToDate(normalizedKey);
+
+                    // Force upsert
+                    await this.prisma.monthlyIndex.upsert({
+                        where: {
+                            classifier_code_period: {
+                                classifier_code: code,
+                                period: periodDate
+                            }
+                        },
+                        update: { index_value: valNum },
+                        create: {
+                            classifier_code: code,
+                            period: periodDate,
+                            index_value: valNum
+                        }
+                    });
+                }
+
+                processedCount++;
+                if (processedCount % 10 === 0 || processedCount === totalRows) {
+                    const progress = Math.floor((processedCount / totalRows) * 100);
+                    // ETA logic...
+                    await this.prisma.refreshJob.update({
+                        where: { id: jobId },
+                        data: { progress, processed_rows: processedCount }
+                    });
+                }
+            }
+
+            // Success
+            await this.prisma.refreshJob.update({
+                where: { id: jobId },
+                data: {
+                    status: 'SUCCESS',
+                    progress: 100,
+                    eta_seconds: 0,
+                    completed_at: new Date(),
+                    error_message: `Imported ${targetKeys.length} months (${minDate} to ${maxDate})`
+                }
+            });
+
+        } catch (e) {
+            this.logger.error(`History Processing Error: ${e.message}`);
+            await this.prisma.refreshJob.update({
+                where: { id: jobId },
+                data: {
+                    status: 'ERROR',
+                    error_message: e.message,
+                    completed_at: new Date()
+                }
+            });
+        }
+    }
+
     private deriveParentCode(code: string): string | null {
         if (!code.includes('.')) {
             // It's a top level code (e.g. "1")
